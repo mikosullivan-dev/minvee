@@ -1,6 +1,9 @@
-# minvee
-Minimalist versioning system
+Minvee: simple, easy versioning system.
 
-A simpler, friendler versioning system.
+Minvee is therapy. I hate git. I decided a lot of us would love something
+simpler and effective.
 
-This project is therapy for me. I hate git.
+For now, Minvee is just a wiki on (ironically) GitHub. We'll eventually actually
+create the code, but for now we're just organizing ideas.
+
+See the wiki at https://github.com/mikosullivan/minvee/wiki
