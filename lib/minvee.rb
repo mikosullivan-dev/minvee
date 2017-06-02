@@ -7,7 +7,7 @@ require 'diff/lcs'
 # Diff::LCS
 #
 module Diff::LCS
-	def self.comp(myorg, mynew)
+	def self.comparison(myorg, mynew)
 		# TestMin.hr(__method__.to_s)
 		
 		# get diff
