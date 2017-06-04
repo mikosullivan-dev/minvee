@@ -250,6 +250,11 @@ module TestMin
 					next
 				end
 				
+				# must be file, not directory
+				if not File.file?(file_path)
+					next
+				end
+				
 				# add to list of files in directory
 				in_dir[file_path] = true
 				
