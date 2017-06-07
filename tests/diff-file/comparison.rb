@@ -16,5 +16,5 @@ Minvee.show_comparison(mycomp)
 
 
 # done
-# TestMin.done()
+# Testmin.done()
 puts '[done]'

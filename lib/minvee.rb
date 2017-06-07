@@ -16,7 +16,7 @@ class Minvee
 	## the second array.
 	#
 	def self.comparison(myorg, mynew)
-		# TestMin.hr(__method__.to_s)
+		# Testmin.hr(__method__.to_s)
 		
 		# get diff
 		mydiff = Diff::LCS.sdiff(myorg, mynew)
@@ -79,7 +79,7 @@ class Minvee
 	## structure. Don't use this method in production work.
 	#
 	def self.show_comparison(mycomp)
-		# TestMin.hr(__method__.to_s)
+		# Testmin.hr(__method__.to_s)
 		
 		mycomp.each do |change|
 			puts change['action'] + '  ' + change['strs'].show

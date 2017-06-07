@@ -11,6 +11,6 @@ myorg = [ 'a',          'b',        'c', 'd',            ]
 mynew = [ 'a.1', 'a.2', 'b', 'b.1', 'c', 'd', 'd.1', 'e' ]
 
 # compare
-TestMin.hr
+Testmin.hr
 mycomp = Minvee.comparison(myorg, mynew)
 Minvee.show_comparison(mycomp)
