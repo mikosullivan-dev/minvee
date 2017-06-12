@@ -9,13 +9,13 @@ require 'diff/lcs'
 class Minvee
 	
 	#---------------------------------------------------------------------------
-	# comparison
+	# compare_arrays
 	## Given two arrays of strings, uses Diff::LCS to produce a structure that
 	## holds both complete arrays, and indicates the addition, subtraction or
 	## staying the same for each element as the first array is transformed into
 	## the second array.
 	#
-	def self.comparison(myorg, mynew)
+	def self.compare_arrays(myorg, mynew)
 		# Testmin.hr(__method__.to_s)
 		
 		# get diff
@@ -69,7 +69,7 @@ class Minvee
 		return changes_compact
 	end
 	#
-	# comparison
+	# compare_arrays
 	#---------------------------------------------------------------------------
 	
 	
