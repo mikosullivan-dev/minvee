@@ -295,13 +295,15 @@ module Testmin
 			end
 		end
 		
+		# sort add_files by file name
+		add_files = add_files.sort
+		
 		# add files not listed in config file
 		add_files.each do |file_path|
 			files[file_path] = true
 		end
 		
-		
-		# retutrn success
+		# return success
 		return true
 	end
 	#
@@ -327,13 +329,23 @@ module Testmin
 			Testmin.hr('title'=>dir_path_display, 'dash'=>'=')
 		end
 		
+		# build hash key
+		dir_key = + dir['path']
+		
+		# special case: root dir
+		if dir_key == '.'
+			dir_key = './'
+		else
+			dir_key = dir_key.gsub(/\A.\//, '')
+		end
+		
 		# initialize success to true
 		success = true
 		
 		# add directory to log
 		dir_files = {}
-		dir_log = {'dir_order'=>dir_order, 'files'=>dir_files}
-		log['dirs'][dir_path_display] = dir_log
+		dir_log = {'dir-order'=>dir_order, 'files'=>dir_files}
+		log['dirs'][dir_key] = dir_log
 		
 		# skip if marked to do so
 		if dir['skip']
@@ -438,7 +450,7 @@ module Testmin
 		Testmin.v file_path
 		
 		# add to dir files list
-		file_log = {'file_order'=>file_order}
+		file_log = {'file-order'=>file_order}
 		dir_files[file_path] = file_log
 		
 		# debug objects
@@ -499,6 +511,12 @@ module Testmin
 		file_log['success'] = success
 		file_log['run-time'] = mark.real
 		
+		# hold ton stdout and stderr if necessary
+		if (not success) or file_settings['save-output']
+			file_log['stdout'] = debug_stdout
+			file_log['stderr'] = debug_stderr
+		end
+		
 		# if failure
 		if not success
 			# show file output
@@ -510,10 +528,6 @@ module Testmin
 			Testmin.v debug_stderr
 			Testmin.hr('dash'=>'*')
 			Testmin.v
-			
-			# add to file log
-			file_log['stdout'] = debug_stdout
-			file_log['stderr'] = debug_stderr
 		end
 		
 		# return success
@@ -550,7 +564,7 @@ module Testmin
 		# Testmin.hr(__method__.to_s)
 		
 		# initliaze versions hash
-		versions = log['versions'] = {}
+		versions = log['sys-info'] = {}
 		
 		# Testmin version
 		versions['testmin'] = Testmin::VERSION
@@ -1082,7 +1096,10 @@ module Testmin
 		# if user gave email in command line
 		if not @user_email.nil?
 			results['private']['email'] = @user_email
-		elsif not @auto
+		
+		# else if @auto_submit is nil, meaning the user has not already set a
+		# choice on whether or not to submit
+		elsif @auto_submit.nil?
 			# get prompt
 			prompt = Testmin.message(
 				'email-request',
@@ -1127,7 +1144,7 @@ module Testmin
 		end
 		
 		# if automatic, nothing to do here
-		if @auto
+		if @auto_submit
 			return
 		end
 		
