@@ -17,7 +17,6 @@ require 'optparse'
 # Testmin
 #
 module Testmin
-	
 	# Testmin version
 	VERSION = '0.0.4'
 	
@@ -48,9 +47,10 @@ module Testmin
 	# The realpath to the current executing file
 	@exec_file = File.realpath(__FILE__)
 	
-	# submit settings
-	@auto = false
+	# command line settings
+	@auto_submit = nil
 	@silent = false
+	@output = 'normal'
 	@user_email = nil
 	
 	
@@ -478,6 +478,13 @@ module Testmin
 				# add other elements to details if any
 				if results.any?
 					file_log['details'] = results
+					
+					# set environment variables if any were sent
+					if results['env'].is_a?(Hash)
+						results['env'].each do |key, val|
+							ENV[key] = val.to_s
+						end
+					end
 				end
 			else
 				success = false
@@ -546,7 +553,7 @@ module Testmin
 		versions = log['versions'] = {}
 		
 		# Testmin version
-		versions['Testmin'] = Testmin::VERSION
+		versions['testmin'] = Testmin::VERSION
 		
 		# OS information
 		Testmin.os_info(versions)
@@ -658,7 +665,6 @@ module Testmin
 		log = {}
 		log['id'] = ('a'..'z').to_a.shuffle[0,10].join
 		log['success'] = true
-		log['messages'] = []
 		log['dirs'] = {}
 		log['private'] = {}
 		log['timestamp'] = Time.new.to_s
@@ -710,7 +716,7 @@ module Testmin
 	#
 	def Testmin.devexit()
 		# Testmin.hr(__method__.to_s)
-		Testmin.v "\n", '[devexit]'
+		puts "\n", '[devexit]'
 		exit
 	end
 	#
@@ -758,56 +764,123 @@ module Testmin
 	
 	
 	#---------------------------------------------------------------------------
-	# set_cmd_opts
+	# get_cmd_opts
 	#
-	def Testmin.set_cmd_opts()
+	def Testmin.get_cmd_opts()
 		# Testmin.hr(__method__.to_s)
 		
-		# initialize command line options
-		cmd_opts  = {}
+		# initialize return value
+		rv = {}
 		
 		# get command line options
 		OptionParser.new do |opts|
-			# convenience
-			submit = Testmin.settings['submit']
+			# submit
+			opts.on("-sSUBMIT", "--submit = y|n", 'submit results to an online service') do |val|
+				rv['submit'] = Testmin.val_to_bool(val)
+			end
+			
+			# output
+			opts.on("-o", "--output = normal|silent", 'run silently') do |val|
+				rv['output'] = val
+			end
 			
 			# email
 			opts.on("-eEMAIL", "--email = email|n", 'ask for an email address') do |val|
-				# only bother with these settings if asking for email
-				if submit['email']
-					bool = val.downcase
-					
-					# if false, set email to false
-					if (bool == 'n') or (bool == '0') or (bool == 'f')
-						submit['email'] = false
-					else
-						@user_email = val
-					end
-				end
+				rv['email'] = val
 			end
 			
-			# comments
+			# no-comments
 			opts.on('-z', '--no-comments', 'do  not prompt for comments') do |bool|
-				submit['comments'] = false
+				rv['no-comments'] = Testmin.val_to_bool(val)
 			end
 			
-			# auto
-			opts.on("-a", "--auto", 'run automatically, accept defaults') do
-				@auto = true
-			end
-			
-			# silent
-			opts.on("-v", "--silent", 'run silently') do
-				@auto = true
-				@silent = true
+			# version
+			opts.on('-v', '--version', 'display version and quit') do
+				rv['version'] = true
 			end
 		end.parse!
 		
 		# return
-		return cmd_opts
+		return rv
 	end
 	#
-	# set_cmd_opts
+	# get_cmd_opts
+	#---------------------------------------------------------------------------
+	
+	
+	#---------------------------------------------------------------------------
+	# process_cmd_opts
+	#
+	def Testmin.process_cmd_opts()
+		# Testmin.hr(__method__.to_s)
+		
+		# get options
+		opts = Testmin.get_cmd_opts()
+		
+		# convenience
+		submit = Testmin.settings['submit']
+		
+		# output
+		if opts.key?('output')
+			if opts['output'] == 'normal'
+				@output = 'normal'
+				@silent = false
+			elsif opts['output'] == 'json'
+				@output = 'json'
+				@silent = true
+				@auto_submit = true
+			elsif opts['output'] == 'silent'
+				@output = 'silent'
+				@silent = true
+				@auto_submit = true
+			end
+		end
+		
+		# version
+		if opts.key?('version')
+			if opts['version']
+				# normal
+				if @output == 'json'
+					puts '{"version":"' + VERSION + '"}'
+				else
+					puts 'Testmin version ' + VERSION
+				end
+				
+				# exit
+				exit
+			end
+		end
+		
+		# submit
+		if opts.key?('submit')
+			# only bother if settings already indicate to submit results
+			if submit['request']
+				@auto_submit = opts['submit']
+			end
+		end
+		
+		# email
+		if opts.key?('email')
+			# only bother with these settings if asking for email
+			if submit['email']
+				bool = val.downcase
+				
+				# if false, set email to false
+				if (bool == 'n') or (bool == '0') or (bool == 'f')
+					submit['email'] = false
+				else
+					@user_email = val
+				end
+			end
+		end
+		
+		# no comments
+		if opts.key?('no-comments')
+			submit['comments'] = false
+		end
+	end
+	#
+	# process_cmd_opts
 	#---------------------------------------------------------------------------
 	
 	
@@ -856,13 +929,14 @@ module Testmin
 		# Testmin.hr(__method__.to_s)
 		
 		# get command line options
-		Testmin.set_cmd_opts()
+		Testmin.process_cmd_opts()
 		
 		# initialize log object
 		log = Testmin.create_log()
 		
 		# run tests, output results
 		results = Testmin.process_tests(log)
+		log['success'] = results
 		
 		# verbosify
 		Testmin.v()
@@ -882,6 +956,11 @@ module Testmin
 		# send log to Testmin service if necessary
 		Testmin.v
 		Testmin.submit_results(log)
+		
+		# output json if necessary
+		if @output == 'json'
+			puts JSON.generate(log)
+		end
 	end
 	#
 	# run_tests
@@ -964,9 +1043,9 @@ module Testmin
 	def Testmin.submit_ask()
 		# Testmin.hr(__method__.to_s)
 		
-		# if automatic, return true
-		if @auto
-			return true
+		# if @auto_submit is set, use that as the return value
+		if not @auto_submit.nil?
+			return @auto_submit
 		end
 		
 		# get submit settings
@@ -1481,4 +1560,41 @@ if caller().length <= 0
 end
 #
 # run tests if this script was not loaded by another script
+#---------------------------------------------------------------------------
+
+
+
+
+__END__
+
+#---------------------------------------------------------------------------
+# get_cmd_opts
+#
+def Testmin.get_cmd_opts()
+	Testmin.hr(__method__.to_s)
+	
+	# initialize return value
+	rv = {}
+	
+	# get command line options
+	OptionParser.new do |opts|
+		# convenience
+		submit = Testmin.settings['submit']
+		
+		# comments
+		opts.on('-z', '--no-comments', 'do  not prompt for comments') do |bool|
+			submit['comments'] = false
+		end
+		
+		# output
+		opts.on("-o", "--output = normal|silent", 'run silently') do
+			@silent = true
+		end
+	end.parse!
+	
+	# return
+	return
+end
+#
+# get_cmd_opts
 #---------------------------------------------------------------------------
